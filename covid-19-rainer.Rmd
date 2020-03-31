@@ -177,7 +177,7 @@ for(i in 1:nrow(d10)){
 
 The raw data from Hopkins are in the format of daily reports with one file per day. More recent files (since March 22nd) inlcude information from individual states of US or individual counties, as shown in the following figure. So I turn to NY Times data for informatoin of individual states or counties. 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
+```{r echo = FALSE, warning = FALSE, message = FALSE, results="hide", fig.asp = 0.4}
 dir1 = file.path(dir0, "csse_covid_19_daily_reports")
 flist = list.files(".csv", path=dir1, full.names=TRUE)
 length(flist)
@@ -201,7 +201,7 @@ nr.df$date  = substring(nr.df$md, 4, 5)
 nr.df$day   = 1:nrow(nr.df)
 
 p = ggplot(nr.df, aes(x=day, y=records, fill=month)) +
-  geom_bar(stat="identity")  
+  geom_bar(stat="identity") +  
   ggtitle(sprintf("number of records in Hopkins daily reports"))
 
 str2 = "day 1 is Jan 22nd, 2020"
@@ -215,7 +215,7 @@ annotate_figure(p,
 
 The data from NY Times are saved in two text files, one for state level information and the other one for county level information. 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
+```{r echo = FALSE, warning = FALSE, message = FALSE, results="hide"}
 dir1 = "../covid-19-data"
 
 counties = read.csv(file.path(dir1, "us-counties.csv"), as.is=TRUE)
