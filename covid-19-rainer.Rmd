@@ -1,0 +1,416 @@
+---
+title: "Exploration of COVID-19 tracking data from multiple resources"
+author: "Wei Sun"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    highlight: tango
+    number_sections: yes
+    theme: journal
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: yes
+      smooth_scroll: no
+editor_options:
+  chunk_output_type: console
+---
+
+# Introduction
+
+Coronavirus disease 2019 (COVID-19) is an infectious disease caused by a new type of coronavirus:  severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2). The outbreak first started in Wuhan, China in December 2019. The first kown case of COVID-19 in the U.S. was confirmed on January 20, 2020, in a 35-year-old man who teturned to Washington State on January 15 after traveling to Wuhan. Starting around the end of Feburary, evidence emerge for community spread in the US. 
+
+We, as all of us, are indebted to the heros who fight COVID-19 across the whole world in different ways. For this data exploration, I am  grateful to many data science groups who have collected detailed COVID-19 outbreak data, including the number of tests, confirmed cases, and deaths, across countries/regions, states/provnices (administrative division level 1, or admin1), and counties (admin2). Specifically, I used the data from these three resources: 
+
+* JHU (https://coronavirus.jhu.edu/)
+
+  + The Center for Systems Science and Engineering (CSSE) at John Hopkins University. 
+  
+  + World-wide counts of coronavirus cases, deaths, and recovered ones. 
+  
+  + https://github.com/CSSEGISandData/COVID-19
+  
+* NY Times (https://www.nytimes.com/interactive/2020/us/coronavirus-us-cases.html)
+  
+  + The New York Times
+  
+  + ``cumulative counts of coronavirus cases in the United States, at the state and county level, over time''
+  
+  + https://github.com/nytimes/covid-19-data
+  
+* COVID Trackng (https://covidtracking.com/)
+
+  + COVID Tracking Project
+  
+  + ``collects information from 50 US states, the District of Columbia, and 5 other US territories to provide the most comprehensive testing data''
+  
+  + https://github.com/COVID19Tracking/covid-tracking-data
+  
+```{r setup, include=FALSE,  warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggpubr)
+theme_set(theme_bw())
+library(httr)
+```
+
+# JHU
+
+Assume you have cloned the JHU Github repository on your local machine at ``../COVID-19''. 
+
+## time series data
+The time series provide counts (e.g., confirmed cases, deaths) starting from Jan 22nd, 2020 for 253 locations. Currently there is no data of individual US state in these time series data files. 
+
+```{r eval = TRUE, echo = FALSE, results="hide"}
+dir0 = "../COVID-19/csse_covid_19_data"
+dir1 = file.path(dir0, "csse_covid_19_time_series")
+
+cases = read.csv(file.path(dir1, "time_series_covid19_confirmed_global.csv"), 
+                 as.is=TRUE)
+death = read.csv(file.path(dir1, "time_series_covid19_deaths_global.csv"), 
+                 as.is=TRUE)
+
+dim(cases)
+cases[1:2,c(1:6,ncol(cases))]
+
+dim(death)
+death[1:2,c(1:6,ncol(cases))]
+
+cases[which(cases$Country.Region=="US"),c(1:6,ncol(cases))]
+death[which(cases$Country.Region=="US"),c(1:6,ncol(cases))]
+
+table(death$Country.Region == cases$Country.Region)
+
+cases$Region   = cases$Country.Region
+w2             = which(cases$Province.State != "")
+cases$Region[w2] = paste(cases$Region[w2], cases$Province.State[w2], sep="-")
+
+death$Region   = death$Country.Region
+w2             = which(death$Province.State != "")
+death$Region[w2] = paste(death$Region[w2], death$Province.State[w2], sep="-")
+
+```
+
+Here is the list of 10 records with the largest number of cases or deaths on the most recent date. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.5}
+od1 = order(cases[,ncol(cases)-1], decreasing=TRUE)
+d10 = cases[od1[1:10],]
+current.date = names(d10)[ncol(d10)-1]
+d10$cases    = d10[[current.date]]
+current.date = gsub("^X", "", current.date)
+d10$Region   = factor(d10$Region, levels=d10$Region)
+
+p = ggplot(d10, aes(x=Region, y=cases, fill=Region)) +
+  geom_bar(stat="identity") + coord_flip() + 
+  ggtitle(sprintf("cumulative number of cases on %s", current.date))
+p + theme(legend.position = "none")
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.5}
+od1 = order(death[,ncol(death)-1], decreasing=TRUE)
+d10 = death[od1[1:10],]
+current.date = names(d10)[ncol(d10)-1]
+d10$death    = d10[[current.date]]
+current.date = gsub("^X", "", current.date)
+d10$Region   = factor(d10$Region, levels=d10$Region)
+
+p = ggplot(d10, aes(x=Region, y=death, fill=Region)) +
+  geom_bar(stat="identity") + coord_flip() + 
+  ggtitle(sprintf("cumulative number of deaths on %s", current.date))
+p + theme(legend.position = "none")
+```
+
+
+Next, I check for each country/region, what is the number of new cases/deaths? This data is important to understand what is the trend under different situations, e.g., population density, social distance policies etc. Here I checked the top 10 countries/regions with the highest number of deaths. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
+
+od1 = order(death[,ncol(death)-1], decreasing=TRUE)
+d10 = death[od1[1:10],]
+
+c10 = cases[match(d10$Region, cases$Region),]
+stopifnot(all(c10$Region == d10$Region))
+
+for(i in 1:nrow(d10)){
+  d1 = as.numeric(d10[i,-c(1:4,ncol(d10))])
+  c1 = as.numeric(c10[i,-c(1:4,ncol(c10))])
+  date1 = gsub("^X", "", names(d10)[-c(1:4,ncol(d10))])
+  
+  us = data.frame(date=date1, case=c1, death=d1)
+  
+  us$date = gsub("\\.20$", "", us$date)
+  us$month = substr(us$date, 1, 1)
+  us$day = 1:nrow(us)
+  dim(us)
+  us[1:5,]
+  
+  us$new.case  = c(us$case[1], diff(us$case))
+  us$new.death = c(us$death[1], diff(us$death))
+  
+  gcn = ggplot(us, aes(x=day, y=log10(new.case + 1), color=month)) +
+    geom_point()  + geom_smooth(method=loess)
+  
+  gdn = ggplot(us, aes(x=day, y=log10(new.death + 1), color=month)) +
+    geom_point()  + geom_smooth(method=loess)
+  
+  figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
+  
+  str1 = d10$Region[i]
+  # str2 = "data resource: https://github.com/CSSEGISandData/COVID-19, "
+  # str2 = paste0(str2, "day 1 is Jan 22nd, 2020")
+  str2 = "day 1 is Jan 22nd, 2020"
+  
+  figure = annotate_figure(figure,
+                  top = text_grob(str1, color = "brown", face = "bold"),
+                  bottom = text_grob(str2, color = "blue", hjust = 1, 
+                                     x = 1, face = "italic"))
+  print(figure)
+  
+}
+```
+
+## daily reports data
+
+The raw data from Hopkins are in the format of daily reports with one file per day. More recent files (since March 22nd) inlcude information from individual states of US or individual counties, as shown in the following figure. So I turn to NY Times data for informatoin of individual states or counties. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
+dir1 = file.path(dir0, "csse_covid_19_daily_reports")
+flist = list.files(".csv", path=dir1, full.names=TRUE)
+length(flist)
+flist[c(1:2, length(flist))]
+
+dat.list = list()
+for(f1 in flist){
+  day1 = gsub("\\.csv", "", basename(f1))
+  day1 = gsub("-2020", "", day1)
+  
+  dat.list[[day1]] = read.csv(f1, as.is=TRUE)
+  names(dat.list[[day1]]) = gsub("\\.", "_", names(dat.list[[day1]]))
+}
+
+nr = sapply(dat.list, nrow)
+nc = sapply(dat.list, ncol)
+
+nr.df = data.frame(md=names(nr), records=as.numeric(nr))
+nr.df$month = substring(nr.df$md, 1, 2)
+nr.df$date  = substring(nr.df$md, 4, 5)
+nr.df$day   = 1:nrow(nr.df)
+
+p = ggplot(nr.df, aes(x=day, y=records, fill=month)) +
+  geom_bar(stat="identity")  
+  ggtitle(sprintf("number of records in Hopkins daily reports"))
+
+str2 = "day 1 is Jan 22nd, 2020"
+
+annotate_figure(p, 
+                bottom = text_grob(str2, color = "blue", hjust = 1, 
+                                              x = 1, face = "italic"))
+```
+
+# NY Times
+
+The data from NY Times are saved in two text files, one for state level information and the other one for county level information. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
+dir1 = "../covid-19-data"
+
+counties = read.csv(file.path(dir1, "us-counties.csv"), as.is=TRUE)
+states   = read.csv(file.path(dir1, "us-states.csv"), as.is=TRUE)
+
+dim(counties)
+counties[1:2,]
+
+dim(states)
+states[1:2,]
+```
+
+The currente date is
+```{r echo=FALSE}
+current.date = counties$date[nrow(counties)]
+current.date
+```
+
+## state level data
+
+First check the 10 states with the largest number of deaths.  
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+state10 = states[which(states$date==current.date),]
+state10 = state10[order(state10$deaths, decreasing = TRUE)[1:10],]
+print(state10)
+```
+
+For these 10 states, I check the number of new cases and the number of new deaths. Part of the reason for such checking is to identify whether there is any similarity on such patterns. For example, could you use the pattern seen from Italy to predict what happen in an individual state, and what are the similarities and differences across states. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
+
+for(k in 1:nrow(state10)){
+  
+  st1 = state10$state[k]
+  w2check = which(states$state==st1)
+  
+  df1 = states[w2check,]
+  df1$new.case  = c(df1$cases[1], diff(df1$cases))
+  df1$new.death = c(df1$deaths[1], diff(df1$deaths))
+  
+  df1$date  = gsub("2020-", "", df1$date)
+  df1$month = substr(df1$date, 1, 2)
+  df1$day   = 1:nrow(df1)
+  
+  dim(df1)
+  df1[1:2,]
+  table(df1$month)
+  
+  gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1), color=month)) +
+    geom_point()  + geom_smooth(method=loess)
+  
+  gdn = ggplot(df1, aes(x=day, y=log10(new.death + 1), color=month)) +
+    geom_point()  + geom_smooth(method=loess)
+  
+  figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
+  
+  str1 = sprintf("%s", st1)
+  # str2 = "https://github.com/nytimes/covid-19-data"
+  # str2 = paste(str1, str2)
+  
+  str3 = sprintf("day 1 is %s", df1$date[1])
+  
+  figure = annotate_figure(figure, top = text_grob(str1, col="brown"), 
+                           bottom = text_grob(str3, color = "blue", 
+                                    hjust = 1, x = 1, face = "italic"))
+  
+  print(figure)
+}
+```
+
+Next I check the relation between the **cumulative** number of cases and deaths for these 10 states, starting on March
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+states$date  = gsub("2020-", "", states$date)
+states$month = as.numeric(substr(states$date, 1, 2))
+s10 = states[which(states$month >= 3),]
+s10 = s10[which(s10$state %in% state10$state),]
+
+ggplot(data=s10,
+       aes(x=log10(cases+1), y=log10(deaths+1), colour=state)) +
+       geom_line()
+```
+
+## county level data
+
+First check the 10 counties with the largest number of deaths.  
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+county10 = counties[which(counties$date==current.date),]
+county10 = county10[order(county10$deaths, decreasing = TRUE)[1:10],]
+print(county10)
+```
+
+For these 10 counties, I check the number of new cases and the number of new deaths. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4, results="hide"}
+for(k in 1:nrow(county10)){
+  
+  ct1 = county10$county[k]
+  st1 = county10$state[k]
+
+  w2check = which(counties$county==ct1 & counties$state==st1)
+  
+  df1 = counties[w2check,]
+  df1$new.case  = c(df1$cases[1], diff(df1$cases))
+  df1$new.death = c(df1$deaths[1], diff(df1$deaths))
+  
+  df1$date  = gsub("2020-", "", df1$date)
+  df1$month = substr(df1$date, 1, 2)
+  df1$day   = 1:nrow(df1)
+  
+  dim(df1)
+  df1[1:2,]
+  table(df1$month)
+
+  gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1), color=month)) +
+    geom_point()  + geom_smooth(method=loess)
+  
+  gdn = ggplot(df1, aes(x=day, y=log10(new.death + 1), color=month)) +
+    geom_point()  + geom_smooth(method=loess)
+  
+  figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
+  
+  str1 = sprintf("%s_%s", ct1, st1)
+  str3 = sprintf("day 1 is %s", df1$date[1])
+  
+  figure = annotate_figure(figure, top = text_grob(str1, col="brown"), 
+                           bottom = text_grob(str3, color = "blue", 
+                                    hjust = 1, x = 1, face = "italic"))
+  print(figure)
+}
+```
+
+# COVID Trackng
+
+The positive rates of testing can be an indicator on how much the COVID-19 has spread. However, they are more noisy data since the negative testing resutls are often not reported and the tests are almost surely taken on a non-representative random sample of the population. The COVID traking project proides a grade per state: ``If you are calculating positive rates, it should only be with states that have an A grade. And be careful going back in time because almost all the states have changed their level of reporting at different times.'' (https://covidtracking.com/about-tracker/). The data are also availalbe for both counties and states, here I only look at state level data. 
+
+Since the daily postive rate can fluctuate a lot, here I only illustrae the cumulative positave rate across time, for four states with grade A data. Of course since this is an R markdown file, you can modify the source code and check for other states. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4, results="hide"}
+data.dir = "../covid-tracking-data/data"
+states2check = c("WA", "TX", "NY", "NC")
+states = read.csv(file.path(data.dir, "states_daily_4pm_et.csv"))
+
+dim(states)
+states[1:2,]
+table(states$state)
+
+first_date   = states$date[nrow(states)]
+states$date  = gsub("2020", "", states$date)
+states$month = as.numeric(substring(states$date,1,2))
+states$Month = as.factor(states$month)
+states$dayom = as.numeric(substring(states$date,3,4))
+states$day   = (states$month - 3)*31 + states$dayom # just for ranking
+states[1:2,]
+
+table(states$month)
+
+states$total.non_pending = states$positive + states$negative
+states$positive.rate = states$positive/states$total.non_pending
+
+# states$positive.rate = states$positiveIncrease/states$totalTestResultsIncrease
+
+w2kp = which(states$state %in% states2check)
+rate = ggplot(states[w2kp,], aes(x=day, y=positive.rate, 
+                                 shape=Month, color=state)) +
+  geom_point()  + geom_smooth(method=loess) + 
+  labs(y= "cumulative positive rate")
+
+total = ggplot(states[w2kp,], aes(x=day, y=log10(total.non_pending), 
+                                  shape=Month, color=state)) +
+  geom_point()  + geom_smooth(method=loess)
+
+figure = ggarrange(rate, total, ncol = 2, nrow = 1)
+
+current.date = states$date[which(states$state=="WA")][1]
+
+str1 = sprintf("cumulative positive rate on %s: ", current.date)
+
+for(s1 in states2check){
+  posR = states$positive.rate[which(states$state==s1)][1]
+  str1 = sprintf("%s%.2f(%s) ", str1, posR, s1)
+}
+
+str1
+
+annotate_figure(figure,
+                bottom = text_grob(str1, color = "blue", hjust = 1, 
+                                   x = 1, face = "italic", size = 10))
+```
+
+
+# Session information
+```{r}
+sessionInfo()
+```
+
