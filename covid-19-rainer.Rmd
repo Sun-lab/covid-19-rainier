@@ -3,9 +3,6 @@ title: "Exploration of COVID-19 tracking data from multiple resources"
 author: "Wei Sun"
 date: "`r Sys.Date()`"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
   html_document:
     highlight: tango
     number_sections: yes
@@ -15,6 +12,9 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
 editor_options:
   chunk_output_type: console
 ---
@@ -160,14 +160,12 @@ for(i in 1:nrow(d10)){
   figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
   
   str1 = d10$Region[i]
-  # str2 = "data resource: https://github.com/CSSEGISandData/COVID-19, "
-  # str2 = paste0(str2, "day 1 is Jan 22nd, 2020")
-  str2 = "day 1 is Jan 22nd, 2020"
-  
+str2 = "data source: https://github.com/CSSEGISandData/COVID-19, "
+str2 = paste0(str2, "day 1 is 1/22/2020")
+
   figure = annotate_figure(figure,
                   top = text_grob(str1, color = "brown", face = "bold"),
-                  bottom = text_grob(str2, color = "blue", hjust = 1, 
-                                     x = 1, face = "italic"))
+                  bottom = text_grob(str2, color = "blue", hjust = 1, x = 1))
   print(figure)
   
 }
@@ -204,11 +202,12 @@ p = ggplot(nr.df, aes(x=day, y=records, fill=month)) +
   geom_bar(stat="identity") +  
   ggtitle(sprintf("number of records in Hopkins daily reports"))
 
-str2 = "day 1 is Jan 22nd, 2020"
+str2 = "data source: https://github.com/CSSEGISandData/COVID-19, "
+str2 = paste0(str2, "day 1 is 1/22/2020")
 
 annotate_figure(p, 
-                bottom = text_grob(str2, color = "blue", hjust = 1, 
-                                              x = 1, face = "italic"))
+                bottom = text_grob(str2, color = "blue", 
+                                   hjust = 1, x = 1))
 ```
 
 # NY Times
@@ -274,10 +273,8 @@ for(k in 1:nrow(state10)){
   figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
   
   str1 = sprintf("%s", st1)
-  # str2 = "https://github.com/nytimes/covid-19-data"
-  # str2 = paste(str1, str2)
-  
-  str3 = sprintf("day 1 is %s", df1$date[1])
+  str2 = "data source: https://github.com/nytimes/covid-19-data"
+  str3 = sprintf("%s, day 1 is %s", str2, df1$date[1])
   
   figure = annotate_figure(figure, top = text_grob(str1, col="brown"), 
                            bottom = text_grob(str3, color = "blue", 
@@ -295,9 +292,12 @@ states$month = as.numeric(substr(states$date, 1, 2))
 s10 = states[which(states$month >= 3),]
 s10 = s10[which(s10$state %in% state10$state),]
 
-ggplot(data=s10,
-       aes(x=log10(cases+1), y=log10(deaths+1), colour=state)) +
-       geom_line()
+figure = ggplot(data=s10, 
+                aes(x=log10(cases+1), y=log10(deaths+1), colour=state)) + 
+                geom_line()
+str2 = "data source: https://github.com/nytimes/covid-19-data"
+annotate_figure(figure, bottom = text_grob(str2, color = "blue", 
+                                    hjust = 1, x = 1))
 ```
 
 ## county level data
@@ -341,11 +341,12 @@ for(k in 1:nrow(county10)){
   figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
   
   str1 = sprintf("%s_%s", ct1, st1)
-  str3 = sprintf("day 1 is %s", df1$date[1])
+  str2 = "data source: https://github.com/nytimes/covid-19-data"
+  str3 = sprintf("%s, day 1 is %s", str2, df1$date[1])
   
   figure = annotate_figure(figure, top = text_grob(str1, col="brown"), 
                            bottom = text_grob(str3, color = "blue", 
-                                    hjust = 1, x = 1, face = "italic"))
+                                    hjust = 1, x = 1))
   print(figure)
 }
 ```
@@ -394,11 +395,12 @@ figure = ggarrange(rate, total, ncol = 2, nrow = 1)
 
 current.date = states$date[which(states$state=="WA")][1]
 
-str1 = sprintf("cumulative positive rate on %s: ", current.date)
+str0 = "github.com/COVID19Tracking/"
+str1 = sprintf("%s, cumulative positive rate on %s:", str0, current.date)
 
 for(s1 in states2check){
   posR = states$positive.rate[which(states$state==s1)][1]
-  str1 = sprintf("%s%.2f(%s) ", str1, posR, s1)
+  str1 = sprintf("%s %.2f(%s)", str1, posR, s1)
 }
 
 str1
