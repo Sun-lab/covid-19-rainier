@@ -3,6 +3,9 @@ title: "Exploration of COVID-19 tracking data from multiple resources"
 author: "Wei Sun"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
   html_document:
     highlight: tango
     number_sections: yes
@@ -12,9 +15,6 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
 editor_options:
   chunk_output_type: console
 ---
@@ -151,11 +151,11 @@ for(i in 1:nrow(d10)){
   us$new.case  = c(us$case[1], diff(us$case))
   us$new.death = c(us$death[1], diff(us$death))
   
-  gcn = ggplot(us, aes(x=day, y=log10(new.case + 1), color=month)) +
-    geom_point()  + geom_smooth(method=loess)
+  gcn = ggplot(us, aes(x=day, y=log10(new.case + 1))) +
+    geom_point(aes(color=month))  + geom_smooth(method=loess)
   
-  gdn = ggplot(us, aes(x=day, y=log10(new.death + 1), color=month)) +
-    geom_point()  + geom_smooth(method=loess)
+  gdn = ggplot(us, aes(x=day, y=log10(new.death + 1))) +
+    geom_point(aes(color=month))  + geom_smooth(method=loess)
   
   figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
   
@@ -264,11 +264,11 @@ for(k in 1:nrow(state10)){
   df1[1:2,]
   table(df1$month)
   
-  gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1), color=month)) +
-    geom_point()  + geom_smooth(method=loess)
+  gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1))) +
+    geom_point(aes(color=month))  + geom_smooth(method=loess)
   
-  gdn = ggplot(df1, aes(x=day, y=log10(new.death + 1), color=month)) +
-    geom_point()  + geom_smooth(method=loess)
+  gdn = ggplot(df1, aes(x=day, y=log10(new.death + 1))) +
+    geom_point(aes(color=month))  + geom_smooth(method=loess)
   
   figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
   
@@ -332,11 +332,11 @@ for(k in 1:nrow(county10)){
   df1[1:2,]
   table(df1$month)
 
-  gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1), color=month)) +
-    geom_point()  + geom_smooth(method=loess)
+  gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1))) +
+    geom_point(aes(color=month))  + geom_smooth(method=loess)
   
-  gdn = ggplot(df1, aes(x=day, y=log10(new.death + 1), color=month)) +
-    geom_point()  + geom_smooth(method=loess)
+  gdn = ggplot(df1, aes(x=day, y=log10(new.death + 1))) +
+    geom_point(aes(color=month))  + geom_smooth(method=loess)
   
   figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
   
@@ -382,14 +382,13 @@ states$positive.rate = states$positive/states$total.non_pending
 # states$positive.rate = states$positiveIncrease/states$totalTestResultsIncrease
 
 w2kp = which(states$state %in% states2check)
-rate = ggplot(states[w2kp,], aes(x=day, y=positive.rate, 
-                                 shape=Month, color=state)) +
-  geom_point()  + geom_smooth(method=loess) + 
+rate = ggplot(states[w2kp,], aes(x=day, y=positive.rate, color=state)) +
+  geom_point(aes(shape=Month))  + geom_smooth(method=loess) + 
   labs(y= "cumulative positive rate")
 
 total = ggplot(states[w2kp,], aes(x=day, y=log10(total.non_pending), 
-                                  shape=Month, color=state)) +
-  geom_point()  + geom_smooth(method=loess)
+                                  color=state)) +
+  geom_point(aes(shape=Month))  + geom_smooth(method=loess)
 
 figure = ggarrange(rate, total, ncol = 2, nrow = 1)
 
