@@ -3,6 +3,9 @@ title: "Exploration of COVID-19 tracking data from multiple resources"
 author: "Wei Sun"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
   html_document:
     highlight: tango
     number_sections: yes
@@ -12,9 +15,6 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
 editor_options:
   chunk_output_type: console
 ---
@@ -235,21 +235,21 @@ current.date
 
 ## state level data
 
-First check the 10 states with the largest number of deaths.  
+First check the 20 states with the largest number of deaths.  
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
-state10 = states[which(states$date==current.date),]
-state10 = state10[order(state10$deaths, decreasing = TRUE)[1:10],]
-print(state10)
+state20 = states[which(states$date==current.date),]
+state20 = state20[order(state20$deaths, decreasing = TRUE)[1:20],]
+print(state20)
 ```
 
-For these 10 states, I check the number of new cases and the number of new deaths. Part of the reason for such checking is to identify whether there is any similarity on such patterns. For example, could you use the pattern seen from Italy to predict what happen in an individual state, and what are the similarities and differences across states. 
+For these 20 states, I check the number of new cases and the number of new deaths. Part of the reason for such checking is to identify whether there is any similarity on such patterns. For example, could you use the pattern seen from Italy to predict what happen in an individual state, and what are the similarities and differences across states. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
 
-for(k in 1:nrow(state10)){
+for(k in 1:nrow(state20)){
   
-  st1 = state10$state[k]
+  st1 = state20$state[k]
   w2check = which(states$state==st1)
   
   df1 = states[w2check,]
@@ -290,7 +290,7 @@ Next I check the relation between the **cumulative** number of cases and deaths 
 states$date  = gsub("2020-", "", states$date)
 states$month = as.numeric(substr(states$date, 1, 2))
 s10 = states[which(states$month >= 3),]
-s10 = s10[which(s10$state %in% state10$state),]
+s10 = s10[which(s10$state %in% state20$state),]
 
 figure = ggplot(data=s10, 
                 aes(x=log10(cases+1), y=log10(deaths+1), colour=state)) + 
@@ -302,21 +302,21 @@ annotate_figure(figure, bottom = text_grob(str2, color = "blue",
 
 ## county level data
 
-First check the 10 counties with the largest number of deaths.  
+First check the 20 counties with the largest number of deaths.  
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
-county10 = counties[which(counties$date==current.date),]
-county10 = county10[order(county10$deaths, decreasing = TRUE)[1:10],]
-print(county10)
+county20 = counties[which(counties$date==current.date),]
+county20 = county20[order(county20$deaths, decreasing = TRUE)[1:20],]
+print(county20)
 ```
 
-For these 10 counties, I check the number of new cases and the number of new deaths. 
+For these 20 counties, I check the number of new cases and the number of new deaths. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4, results="hide"}
-for(k in 1:nrow(county10)){
+for(k in 1:nrow(county20)){
   
-  ct1 = county10$county[k]
-  st1 = county10$state[k]
+  ct1 = county20$county[k]
+  st1 = county20$state[k]
 
   w2check = which(counties$county==ct1 & counties$state==st1)
   
