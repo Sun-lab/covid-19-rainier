@@ -3,6 +3,9 @@ title: "Exploration of COVID-19 tracking data from multiple resources"
 author: "Wei Sun"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
   html_document:
     highlight: tango
     number_sections: yes
@@ -12,9 +15,6 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
 editor_options:
   chunk_output_type: console
 ---
@@ -235,11 +235,11 @@ current.date
 
 ## state level data
 
-First check the 20 states with the largest number of deaths.  
+First check the 30 states with the largest number of deaths.  
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 state20 = states[which(states$date==current.date),]
-state20 = state20[order(state20$deaths, decreasing = TRUE)[1:20],]
+state20 = state20[order(state20$deaths, decreasing = TRUE)[1:30],]
 print(state20)
 ```
 
@@ -302,15 +302,15 @@ annotate_figure(figure, bottom = text_grob(str2, color = "blue",
 
 ## county level data
 
-First check the 20 counties with the largest number of deaths.  
+First check the 30 counties with the largest number of deaths.  
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 county20 = counties[which(counties$date==current.date),]
-county20 = county20[order(county20$deaths, decreasing = TRUE)[1:20],]
+county20 = county20[order(county20$deaths, decreasing = TRUE)[1:30],]
 print(county20)
 ```
 
-For these 20 counties, I check the number of new cases and the number of new deaths. 
+For these 30 counties, I check the number of new cases and the number of new deaths. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4, results="hide"}
 for(k in 1:nrow(county20)){
