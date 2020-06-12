@@ -3,9 +3,6 @@ title: "Exploration of COVID-19 tracking data from multiple resources"
 author: "Wei Sun"
 date: "`r Sys.Date()`"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
   html_document:
     highlight: tango
     number_sections: yes
@@ -15,6 +12,9 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
 editor_options:
   chunk_output_type: console
 ---
@@ -353,40 +353,52 @@ for(k in 1:nrow(county20)){
 
 # COVID Trackng
 
-The positive rates of testing can be an indicator on how much the COVID-19 has spread. However, they are more noisy data since the negative testing resutls are often not reported and the tests are almost surely taken on a non-representative random sample of the population. The COVID traking project proides a grade per state: ``If you are calculating positive rates, it should only be with states that have an A grade. And be careful going back in time because almost all the states have changed their level of reporting at different times.'' (https://covidtracking.com/about-tracker/). The data are also availalbe for both counties and states, here I only look at state level data. 
+The positive rates of testing can be an indicator on how much the COVID-19 has spread. However, they can be much more noisy data since the negative testing resutls are often not reported and the tests are almost surely taken on a non-representative random sample of the population. The COVID traking project proides a grade per state: ``If you are calculating positive rates, it should only be with states that have an A grade. And be careful going back in time because almost all the states have changed their level of reporting at different times.'' (https://covidtracking.com/about-tracker/). The data are also availalbe for both counties and states, here I only look at state level data. 
 
-Since the daily postive rate can fluctuate a lot, here I only illustrae the cumulative positave rate across time, for four states with grade A data. Of course since this is an R markdown file, you can modify the source code and check for other states. 
+The grades of the states may change over timea and I strongly recommend checking their webiste before puting serious interpretation on the following plot. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4, results="hide"}
 data.dir = "../covid-tracking-data/data"
-states2check = c("WA", "TX", "NY", "NC")
+states2check = c("WA", "TX", "NY", "NC", "FL")
 states = read.csv(file.path(data.dir, "states_daily_4pm_et.csv"))
 
 dim(states)
 states[1:2,]
 table(states$state)
 
-first_date   = states$date[nrow(states)]
 states$date  = gsub("2020", "", states$date)
 states$month = as.numeric(substring(states$date,1,2))
 states$Month = as.factor(states$month)
-states$dayom = as.numeric(substring(states$date,3,4))
-states$day   = (states$month - 3)*31 + states$dayom # just for ranking
-states[1:2,]
-
 table(states$month)
 
-states$total.non_pending = states$positive + states$negative
-states$positive.rate = states$positive/states$total.non_pending
+# check results starting at May
+states = states[which(states$month >= 5),]
 
-# states$positive.rate = states$positiveIncrease/states$totalTestResultsIncrease
+states$dayom = as.numeric(substring(states$date,3,4))
+states$day   = (states$month - 5)*31 + states$dayom # just for ranking
+states[1:2,]
+summary(states$day)
+table(states$month)
+
+states$positive.rate = states$positiveIncrease/states$totalTestResultsIncrease
+summary(states$totalTestResultsIncrease)
+summary(states$positiveIncrease)
+states$positive.rate[which(states$positiveIncrease < 0)] = NA
+states$positive.rate[which(states$totalTestResultsIncrease < 100)] = NA
+summary(states$positive.rate)
+
+states[which(states$positive.rate==1)[1:2],]
+states$positive.rate[which(states$positive.rate > 0.9)] = NA
 
 w2kp = which(states$state %in% states2check)
 rate = ggplot(states[w2kp,], aes(x=day, y=positive.rate, color=state)) +
   geom_point(aes(shape=Month))  + geom_smooth(method=loess) + 
   labs(y= "cumulative positive rate")
 
-total = ggplot(states[w2kp,], aes(x=day, y=log10(total.non_pending), 
+summary(states$posNeg - states$totalTestResults)
+summary(states$total - states$totalTestResults)
+
+total = ggplot(states[w2kp,], aes(x=day, y=log10(totalTestResults), 
                                   color=state)) +
   geom_point(aes(shape=Month))  + geom_smooth(method=loess)
 
@@ -395,7 +407,7 @@ figure = ggarrange(rate, total, ncol = 2, nrow = 1)
 current.date = states$date[which(states$state=="WA")][1]
 
 str0 = "github.com/COVID19Tracking/"
-str1 = sprintf("%s, cumulative positive rate on %s:", str0, current.date)
+str1 = sprintf("%s, positive rate on %s:", str0, current.date)
 
 for(s1 in states2check){
   posR = states$positive.rate[which(states$state==s1)][1]
