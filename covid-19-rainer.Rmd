@@ -3,6 +3,9 @@ title: "Exploration of COVID-19 tracking data from multiple resources"
 author: "Wei Sun"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
   html_document:
     highlight: tango
     number_sections: yes
@@ -12,9 +15,6 @@ output:
     toc_float:
       collapsed: yes
       smooth_scroll: no
-  pdf_document:
-    toc: yes
-    toc_depth: '3'
 editor_options:
   chunk_output_type: console
 ---
@@ -357,9 +357,9 @@ The positive rates of testing can be an indicator on how much the COVID-19 has s
 
 The grades of the states may change over timea and I strongly recommend checking their webiste before puting serious interpretation on the following plot. 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4, results="hide"}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 1, results="hide"}
 data.dir = "../covid-tracking-data/data"
-states2check = c("WA", "TX", "NY", "NC", "FL")
+states2check = sort(c("WA", "TX", "NY", "NC", "FL"))
 states = read.csv(file.path(data.dir, "states_daily_4pm_et.csv"))
 
 dim(states)
@@ -390,19 +390,35 @@ summary(states$positive.rate)
 states[which(states$positive.rate==1)[1:2],]
 states$positive.rate[which(states$positive.rate > 0.9)] = NA
 
+cbp1 <- c("#E69F00", "#56B4E9", "#009E73",
+          "#0072B2", "#D55E00", "#CC79A7")
+
 w2kp = which(states$state %in% states2check)
-rate = ggplot(states[w2kp,], aes(x=day, y=positive.rate, color=state)) +
-  geom_point(aes(shape=Month))  + geom_smooth(method=loess) + 
-  labs(y= "cumulative positive rate")
+total = ggplot(states[w2kp,], aes(x=day, y=log10(totalTestResults), 
+                                  color=state)) +
+    labs(y= "cumulative # of tests") + 
+  geom_point(aes(shape=Month))  + geom_smooth(method=loess) +
+  scale_colour_manual(values=cbp1)
+
+fig.list= list()
+i = 0
+for(si in states2check){
+  i = i + 1
+  w2kp = which(states$state %in% si)
+  fig.list[[si]] = 
+    ggplot(states[w2kp,], aes(x=day, y=positive.rate, color=state)) +
+    geom_point(aes(shape=Month))  + geom_smooth(method=loess) + 
+    labs(y= "positive rate") + 
+    scale_colour_manual(values=cbp1[i])
+}
 
 summary(states$posNeg - states$totalTestResults)
 summary(states$total - states$totalTestResults)
 
-total = ggplot(states[w2kp,], aes(x=day, y=log10(totalTestResults), 
-                                  color=state)) +
-  geom_point(aes(shape=Month))  + geom_smooth(method=loess)
 
-figure = ggarrange(rate, total, ncol = 2, nrow = 1)
+figure = ggarrange(total, fig.list[[1]], 
+                   fig.list[[2]], fig.list[[3]], 
+                   fig.list[[4]], fig.list[[5]], ncol = 2, nrow = 3)
 
 current.date = states$date[which(states$state=="WA")][1]
 
