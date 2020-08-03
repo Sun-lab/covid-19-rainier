@@ -55,6 +55,7 @@ library(ggplot2)
 library(ggpubr)
 theme_set(theme_bw())
 library(httr)
+library(RColorBrewer)
 ```
 
 # JHU
@@ -359,7 +360,8 @@ The grades of the states may change over timea and I strongly recommend checking
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 1, results="hide"}
 data.dir = "../covid-tracking-data/data"
-states2check = sort(c("WA", "TX", "NY", "NC", "FL"))
+states2check = sort(c("WA", "TX", "NY", "NC", "FL", "GA", 
+                      "MI", "CA", "IL", "PA", "AZ", "OH"))
 states = read.csv(file.path(data.dir, "states_daily_4pm_et.csv"))
 
 dim(states)
@@ -392,12 +394,14 @@ states$positive.rate[which(states$positive.rate > 0.9)] = NA
 
 cbp1 <- c("#E69F00", "#56B4E9", "#009E73",
           "#0072B2", "#D55E00", "#CC79A7")
+cbp1 = brewer.pal(n = 8, name = "Dark2")
+cbp1 = c(cbp1, brewer.pal(n = 4, name = "Set1"))
 
 w2kp = which(states$state %in% states2check)
 total = ggplot(states[w2kp,], aes(x=day, y=log10(totalTestResults), 
                                   color=state)) +
     labs(y= "cumulative # of tests") + 
-  geom_point(aes(shape=Month))  + geom_smooth(method=loess) +
+  geom_point()  + geom_smooth(method=loess) +
   scale_colour_manual(values=cbp1)
 
 fig.list= list()
@@ -405,9 +409,9 @@ i = 0
 for(si in states2check){
   i = i + 1
   w2kp = which(states$state %in% si)
-  fig.list[[si]] = 
+  fig.list[[i]] = 
     ggplot(states[w2kp,], aes(x=day, y=positive.rate, color=state)) +
-    geom_point(aes(shape=Month))  + geom_smooth(method=loess) + 
+    geom_point()  + geom_smooth(method=loess) + 
     labs(y= "positive rate") + 
     scale_colour_manual(values=cbp1[i])
 }
@@ -416,25 +420,32 @@ summary(states$posNeg - states$totalTestResults)
 summary(states$total - states$totalTestResults)
 
 
-figure = ggarrange(total, fig.list[[1]], 
-                   fig.list[[2]], fig.list[[3]], 
-                   fig.list[[4]], fig.list[[5]], ncol = 2, nrow = 3)
+total
 
-current.date = states$date[which(states$state=="WA")][1]
+figure = ggarrange(fig.list[[1]], fig.list[[2]], fig.list[[3]], 
+                   fig.list[[4]], fig.list[[5]], fig.list[[6]], 
+                   ncol = 2, nrow = 3)
 
-str0 = "github.com/COVID19Tracking/"
-str1 = sprintf("%s, positive rate on %s:", str0, current.date)
-
-for(s1 in states2check){
-  posR = states$positive.rate[which(states$state==s1)][1]
-  str1 = sprintf("%s %.2f(%s)", str1, posR, s1)
-}
-
-str1
-
-annotate_figure(figure,
-                bottom = text_grob(str1, color = "blue", hjust = 1, 
-                                   x = 1, face = "italic", size = 10))
+figure2 = ggarrange(fig.list[[7]], fig.list[[8]], fig.list[[9]], 
+                   fig.list[[10]], fig.list[[11]], fig.list[[12]],
+                   ncol = 2, nrow = 3)
+figure
+figure2
+# current.date = states$date[which(states$state=="WA")][1]
+# 
+# str0 = "github.com/COVID19Tracking/"
+# str1 = sprintf("%s, positive rate on %s:", str0, current.date)
+# 
+# for(s1 in states2check){
+#   posR = states$positive.rate[which(states$state==s1)][1]
+#   str1 = sprintf("%s %.2f(%s)", str1, posR, s1)
+# }
+# 
+# str1
+# 
+# annotate_figure(figure,
+#                 bottom = text_grob(str1, color = "blue", hjust = 1, 
+#                                    x = 1, face = "italic", size = 10))
 ```
 
 
