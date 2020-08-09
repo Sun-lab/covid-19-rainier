@@ -149,6 +149,7 @@ for(i in 1:nrow(d10)){
   dim(us)
   us[1:5,]
   
+  us = us[which(us$month >= 3),]
   us$new.case  = c(us$case[1], diff(us$case))
   us$new.death = c(us$death[1], diff(us$death))
   
@@ -161,8 +162,7 @@ for(i in 1:nrow(d10)){
   figure = ggarrange(gcn, gdn, ncol = 2, nrow = 1)
   
   str1 = d10$Region[i]
-str2 = "data source: https://github.com/CSSEGISandData/COVID-19, "
-str2 = paste0(str2, "day 1 is 1/22/2020")
+  str2 = "data source: https://github.com/CSSEGISandData/COVID-19"
 
   figure = annotate_figure(figure,
                   top = text_grob(str1, color = "brown", face = "bold"),
@@ -244,7 +244,7 @@ state20 = state20[order(state20$deaths, decreasing = TRUE)[1:30],]
 print(state20)
 ```
 
-For these 20 states, I check the number of new cases and the number of new deaths. Part of the reason for such checking is to identify whether there is any similarity on such patterns. For example, could you use the pattern seen from Italy to predict what happen in an individual state, and what are the similarities and differences across states. 
+For these 30 states, I check the number of new cases and the number of new deaths. Part of the reason for such checking is to identify whether there is any similarity on such patterns. For example, could you use the pattern seen from Italy to predict what happen in an individual state, and what are the similarities and differences across states. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.asp = 0.4}
 
@@ -264,6 +264,8 @@ for(k in 1:nrow(state20)){
   dim(df1)
   df1[1:2,]
   table(df1$month)
+
+  df1=df1[which(as.numeric(df1$month) >=3),]
   
   gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1))) +
     geom_point(aes(color=month))  + geom_smooth(method=loess)
@@ -331,7 +333,9 @@ for(k in 1:nrow(county20)){
   
   dim(df1)
   df1[1:2,]
+
   table(df1$month)
+  df1=df1[which(as.numeric(df1$month) >=3),]
 
   gcn = ggplot(df1, aes(x=day, y=log10(new.case + 1))) +
     geom_point(aes(color=month))  + geom_smooth(method=loess)
