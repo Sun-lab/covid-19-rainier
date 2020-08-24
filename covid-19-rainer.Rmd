@@ -366,7 +366,8 @@ The grades of the states may change over timea and I strongly recommend checking
 data.dir = "../covid-tracking-data/data"
 states2check = sort(c("WA", "TX", "NY", "NC", "FL", "GA", 
                       "MI", "CA", "IL", "PA", "AZ", "OH"))
-states = read.csv(file.path(data.dir, "states_daily_4pm_et.csv"))
+# states = read.csv(file.path(data.dir, "states_daily_4pm_et.csv"))
+states = read.csv(file.path(data.dir, "daily.csv"))
 
 dim(states)
 states[1:2,]
